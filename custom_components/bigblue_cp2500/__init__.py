@@ -48,6 +48,12 @@ def parse_telemetry(data: bytes) -> dict:
     soh = data[146]
     soc = data[147]
 
+    # Confirmed AC input fields mapped against the station display.
+    ac_input_voltage = _u16(data, 28) / 10.0
+    ac_input_frequency = _u16(data, 40) / 100.0
+    ac_input_current = _u16(data, 44) / 10.0
+    ac_input_power = _u16(data, 50)
+
     # Temperature fields mapped against the station display.
     ac_input_temperature = _s16(data, 56)
     battery_temperature = _s16(data, 58)
@@ -64,6 +70,10 @@ def parse_telemetry(data: bytes) -> dict:
         "total_capacity": round(total_capacity, 2),
         "cell_count": cell_count,
         "battery_temperature": battery_temperature,
+        "ac_input_power": ac_input_power,
+        "ac_input_voltage": round(ac_input_voltage, 1),
+        "ac_input_current": round(ac_input_current, 1),
+        "ac_input_frequency": round(ac_input_frequency, 2),
         "aux_temperature_1": ac_input_temperature,
         "aux_temperature_2": ac_output_temperature,
         "dc_temperature": dc_temperature,
@@ -262,7 +272,7 @@ class BigBlueCoordinator(DataUpdateCoordinator):
 
         payload = {
             "timestamp": timestamp,
-            "integration_version": "0.3.4",
+            "integration_version": "0.3.6",
             "device": {
                 "name": "BigBlue CP2500",
                 "address": self.address,
