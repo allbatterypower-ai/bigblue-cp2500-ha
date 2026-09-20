@@ -14,6 +14,8 @@ from .const import DOMAIN, FFE4_UUID, FFE9_UUID, TELEMETRY_REQUEST, POLL_INTERVA
 
 _LOGGER = logging.getLogger(__name__)
 PLATFORMS = ["sensor"]
+_MAIN_HEADER = bytes.fromhex("10 01 00 01 00 fa 15 06")
+_MAIN_FRAME_LENGTH = 236
 
 
 def _u16(data: bytes, offset: int) -> int:
@@ -25,11 +27,10 @@ def _s16(data: bytes, offset: int) -> int:
 
 
 def parse_telemetry(data: bytes) -> dict:
-    if len(data) < 236:
+    if len(data) < _MAIN_FRAME_LENGTH:
         raise ValueError(f"Telemetry frame too short: {len(data)} bytes")
 
-    expected_header = bytes.fromhex("10 01 00 01 00 fa 15 06")
-    if data[:8] != expected_header:
+    if data[:8] != _MAIN_HEADER:
         raise ValueError(f"Unexpected telemetry header: {data[:8].hex(' ')}")
 
     cells_mv = [_u16(data, 84 + i * 2) for i in range(16)]
@@ -81,6 +82,8 @@ class BigBlueCoordinator(DataUpdateCoordinator):
         self._task: asyncio.Task | None = None
         self._stopping = False
         self.data = {}
+        self.last_raw_main_frame: bytes | None = None
+        self.last_raw_notifications: list[bytes] = []
 
     async def async_start(self) -> None:
         self._stopping = False
@@ -143,26 +146,32 @@ class BigBlueCoordinator(DataUpdateCoordinator):
                     main_frame = None
                     for _ in range(30):
                         await asyncio.sleep(0.1)
-                        main_frame = next(
-                            (
-                                frame
-                                for frame in chunks
-                                if len(frame) >= 236
-                                and frame[:8] == bytes.fromhex(
-                                    "10 01 00 01 00 fa 15 06"
-                                )
-                            ),
-                            None,
-                        )
-                        if main_frame is not None:
+
+                        # BLE stacks may deliver the 236-byte response in one
+                        # notification or split it across several notifications.
+                        combined = b"".join(chunks)
+                        start = combined.find(_MAIN_HEADER)
+                        if (
+                            start >= 0
+                            and len(combined) >= start + _MAIN_FRAME_LENGTH
+                        ):
+                            main_frame = combined[
+                                start:start + _MAIN_FRAME_LENGTH
+                            ]
                             break
+
+                    self.last_raw_notifications = list(chunks)
 
                     if main_frame is None:
                         _LOGGER.warning(
-                            "BigBlue %s returned no main telemetry frame after request",
+                            "BigBlue %s returned no complete main telemetry frame after request "
+                            "(notifications=%s, total_bytes=%d)",
                             self.address,
+                            [len(chunk) for chunk in chunks],
+                            sum(len(chunk) for chunk in chunks),
                         )
                     else:
+                        self.last_raw_main_frame = main_frame
                         self.async_set_updated_data(parse_telemetry(main_frame))
 
                     await asyncio.sleep(POLL_INTERVAL)
