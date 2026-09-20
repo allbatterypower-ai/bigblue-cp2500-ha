@@ -8,7 +8,7 @@ Experimental local Bluetooth integration for the BigBlue CP2500 portable power s
 - Battery voltage/current/power
 - Surplus and total capacity
 - Battery temperature
-- AC input temperature
+- AC input power, voltage, current, frequency and temperature
 - AC output temperature
 - DC temperature
 - 16 cell voltages
@@ -30,6 +30,11 @@ Experimental local Bluetooth integration for the BigBlue CP2500 portable power s
 - BigBlue CP2500
 - BLE telemetry request via FFE9
 - Notifications via FFE4
+
+## Version 0.3.6
+- Added confirmed AC Input Power, Voltage, Current and Frequency sensors.
+- AC input field mappings were validated against two charging levels (~400 W and ~800 W).
+- Updated uploaded snapshot and diagnostics version markers.
 
 ## Version 0.3.5
 - Fixed the Home Assistant 2026.x options flow crash (500 Internal Server Error).
