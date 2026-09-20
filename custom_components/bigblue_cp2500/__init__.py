@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import asyncio
+import base64
+import json
 import logging
 
 from bleak import BleakClient
@@ -9,6 +11,8 @@ from homeassistant.components import bluetooth
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.util import dt as dt_util
 
 from .const import DOMAIN, FFE4_UUID, FFE9_UUID, TELEMETRY_REQUEST, POLL_INTERVAL
 
@@ -75,8 +79,10 @@ def parse_telemetry(data: bytes) -> dict:
 
 
 class BigBlueCoordinator(DataUpdateCoordinator):
-    def __init__(self, hass: HomeAssistant, address: str):
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry):
+        address = entry.data["address"]
         super().__init__(hass, _LOGGER, name=f"BigBlue CP2500 {address}")
+        self.entry = entry
         self.address = address
         self._client: BleakClient | None = None
         self._task: asyncio.Task | None = None
@@ -230,9 +236,94 @@ class BigBlueCoordinator(DataUpdateCoordinator):
             )
 
 
+    async def async_upload_snapshot_to_github(self) -> str:
+        """Upload the latest BLE snapshot to a configured private GitHub repo."""
+        github_token = self.entry.options.get("github_token")
+        github_repo = self.entry.options.get(
+            "github_repo", "allbatterypower-ai/bigblue-cp2500-logs"
+        )
+
+        if not github_token:
+            raise RuntimeError(
+                "GitHub upload is not configured. Open the integration options "
+                "and add a fine-grained GitHub token."
+            )
+
+        if self.last_raw_main_frame is None:
+            raise RuntimeError(
+                "No complete BLE telemetry frame is available yet. "
+                "Wait for live sensor data and try again."
+            )
+
+        now = dt_util.now()
+        timestamp = now.isoformat()
+        filename = now.strftime("%Y-%m-%d_%H-%M-%S_%f")[:-3] + ".json"
+        path = now.strftime("logs/%Y/%m/%d/") + filename
+
+        payload = {
+            "timestamp": timestamp,
+            "integration_version": "0.3.4",
+            "device": {
+                "name": "BigBlue CP2500",
+                "address": self.address,
+            },
+            "parsed_data": self.data,
+            "raw_main_frame_hex": self.last_raw_main_frame.hex(" "),
+            "raw_notification_lengths": [
+                len(chunk) for chunk in self.last_raw_notifications
+            ],
+            "raw_notifications_hex": [
+                chunk.hex(" ") for chunk in self.last_raw_notifications
+            ],
+        }
+
+        encoded = base64.b64encode(
+            json.dumps(payload, ensure_ascii=False, indent=2).encode("utf-8")
+        ).decode("ascii")
+
+        url = f"https://api.github.com/repos/{github_repo}/contents/{path}"
+        session = async_get_clientsession(self.hass)
+        headers = {
+            "Authorization": f"Bearer {github_token}",
+            "Accept": "application/vnd.github+json",
+            "X-GitHub-Api-Version": "2022-11-28",
+        }
+        body = {
+            "message": f"Add BigBlue BLE snapshot {timestamp}",
+            "content": encoded,
+        }
+
+        async with session.put(url, headers=headers, json=body) as response:
+            response_text = await response.text()
+            if response.status not in (200, 201):
+                raise RuntimeError(
+                    f"GitHub upload failed with HTTP {response.status}: "
+                    f"{response_text[:300]}"
+                )
+            response_json = json.loads(response_text)
+
+        html_url = response_json.get("content", {}).get("html_url")
+        if not html_url:
+            html_url = (
+                f"https://github.com/{github_repo}/blob/main/{path}"
+            )
+
+        _LOGGER.warning(
+            "BIGBLUE SNAPSHOT UPLOADED %s: %s",
+            self.address,
+            html_url,
+        )
+        return html_url
+
+
+async def _async_options_updated(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    await hass.config_entries.async_reload(entry.entry_id)
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    coordinator = BigBlueCoordinator(hass, entry.data["address"])
+    coordinator = BigBlueCoordinator(hass, entry)
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
+    entry.async_on_unload(entry.add_update_listener(_async_options_updated))
     await coordinator.async_start()
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
