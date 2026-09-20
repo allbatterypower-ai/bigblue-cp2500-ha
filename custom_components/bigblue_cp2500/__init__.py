@@ -13,7 +13,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from .const import DOMAIN, FFE4_UUID, FFE9_UUID, TELEMETRY_REQUEST, POLL_INTERVAL
 
 _LOGGER = logging.getLogger(__name__)
-PLATFORMS = ["sensor"]
+PLATFORMS = ["sensor", "button"]
 _MAIN_HEADER = bytes.fromhex("10 01 00 01 00 fa 15 06")
 _MAIN_FRAME_LENGTH = 236
 
@@ -188,6 +188,46 @@ class BigBlueCoordinator(DataUpdateCoordinator):
                         pass
                 self._client = None
                 await asyncio.sleep(10)
+
+
+    async def async_dump_raw_to_log(self) -> None:
+        """Write the latest raw BLE telemetry to the Home Assistant log."""
+        if self.last_raw_main_frame is None:
+            _LOGGER.warning(
+                "BIGBLUE RAW DUMP %s: no complete main frame is available yet; "
+                "notification_lengths=%s",
+                self.address,
+                [len(chunk) for chunk in self.last_raw_notifications],
+            )
+            if self.last_raw_notifications:
+                _LOGGER.warning(
+                    "BIGBLUE RAW NOTIFICATIONS %s: %s",
+                    self.address,
+                    " | ".join(
+                        chunk.hex(" ") for chunk in self.last_raw_notifications
+                    ),
+                )
+            return
+
+        _LOGGER.warning(
+            "BIGBLUE RAW MAIN FRAME %s (%d bytes): %s",
+            self.address,
+            len(self.last_raw_main_frame),
+            self.last_raw_main_frame.hex(" "),
+        )
+
+        _LOGGER.warning(
+            "BIGBLUE PARSED DATA %s: %s",
+            self.address,
+            self.data,
+        )
+
+        if self.last_raw_notifications:
+            _LOGGER.warning(
+                "BIGBLUE RAW NOTIFICATION LENGTHS %s: %s",
+                self.address,
+                [len(chunk) for chunk in self.last_raw_notifications],
+            )
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
