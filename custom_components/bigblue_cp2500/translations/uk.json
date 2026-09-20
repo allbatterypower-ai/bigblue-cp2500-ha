@@ -10,5 +10,17 @@
         }
       }
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Налаштування BigBlue CP2500",
+        "description": "Необов'язкові параметри завантаження у GitHub. Використовуйте fine-grained token з правом Contents: Read and write тільки для приватного репозиторію логів.",
+        "data": {
+          "github_repo": "GitHub репозиторій (owner/repo)",
+          "github_token": "GitHub fine-grained token"
+        }
+      }
+    }
   }
 }
