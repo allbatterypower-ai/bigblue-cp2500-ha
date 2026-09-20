@@ -1,0 +1,49 @@
+name: Create release from manifest version
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "custom_components/bigblue_cp2500/manifest.json"
+      - ".github/workflows/release.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Read integration version
+        id: version
+        shell: bash
+        run: |
+          VERSION=$(python - <<'PY'
+          import json
+          with open("custom_components/bigblue_cp2500/manifest.json", encoding="utf-8") as f:
+              print(json.load(f)["version"])
+          PY
+          )
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub release if missing
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+          VERSION: ${{ steps.version.outputs.version }}
+        shell: bash
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG already exists."
+          else
+            gh release create "$TAG" \
+              --target "${GITHUB_SHA}" \
+              --title "BigBlue CP2500 BLE $TAG" \
+              --notes "BigBlue CP2500 BLE Home Assistant integration version $VERSION."
+          fi
