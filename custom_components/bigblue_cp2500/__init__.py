@@ -43,9 +43,11 @@ def parse_telemetry(data: bytes) -> dict:
     soh = data[146]
     soc = data[147]
 
-    aux_temperature_1 = _s16(data, 56)
+    # Temperature fields mapped against the station display.
+    ac_input_temperature = _s16(data, 56)
     battery_temperature = _s16(data, 58)
-    aux_temperature_2 = _s16(data, 60)
+    ac_output_temperature = _s16(data, 60)
+    dc_temperature = _s16(data, 210)
 
     result = {
         "soc": soc,
@@ -57,8 +59,9 @@ def parse_telemetry(data: bytes) -> dict:
         "total_capacity": round(total_capacity, 2),
         "cell_count": cell_count,
         "battery_temperature": battery_temperature,
-        "aux_temperature_1": aux_temperature_1,
-        "aux_temperature_2": aux_temperature_2,
+        "aux_temperature_1": ac_input_temperature,
+        "aux_temperature_2": ac_output_temperature,
+        "dc_temperature": dc_temperature,
         "cell_min": round(min(cells_mv) / 1000.0, 3),
         "cell_max": round(max(cells_mv) / 1000.0, 3),
         "cell_delta": round((max(cells_mv) - min(cells_mv)) / 1000.0, 3),
