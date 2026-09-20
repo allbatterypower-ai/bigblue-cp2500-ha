@@ -14,6 +14,7 @@ Experimental local Bluetooth integration for the BigBlue CP2500 portable power s
 - 16 cell voltages
 - Minimum/maximum cell voltage and cell delta
 - Downloadable diagnostics with the latest raw BLE telemetry frame
+- One-tap raw BLE dump button for the Home Assistant log
 
 ## Installation with HACS
 1. Add this repository to HACS as a Custom Repository.
@@ -28,6 +29,11 @@ Experimental local Bluetooth integration for the BigBlue CP2500 portable power s
 - BigBlue CP2500
 - BLE telemetry request via FFE9
 - Notifications via FFE4
+
+## Version 0.3.3
+- Added a **Dump Raw BLE to Log** button entity.
+- Pressing the button writes the latest 236-byte BLE frame and parsed values to the Home Assistant log.
+- This makes reverse engineering new fields possible directly from the phone without downloading diagnostics.
 
 ## Version 0.3.2
 - Reassembles telemetry when a 236-byte BLE response is split across multiple notifications.
