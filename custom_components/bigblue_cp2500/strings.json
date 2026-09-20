@@ -1,0 +1,14 @@
+{
+  "title": "BigBlue CP2500 BLE",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect BigBlue CP2500",
+        "description": "Enter the Bluetooth MAC address of the power station.",
+        "data": {
+          "address": "Bluetooth MAC address"
+        }
+      }
+    }
+  }
+}
