@@ -9,6 +9,7 @@ Experimental local Bluetooth integration for the BigBlue CP2500 portable power s
 - Surplus and total capacity
 - Battery temperature
 - AC input power, voltage, current, frequency and temperature
+- DC output power, voltage and current
 - AC output temperature
 - DC temperature
 - 16 cell voltages
@@ -30,6 +31,10 @@ Experimental local Bluetooth integration for the BigBlue CP2500 portable power s
 - BigBlue CP2500
 - BLE telemetry request via FFE9
 - Notifications via FFE4
+
+## Version 0.3.7
+- Added confirmed DC Output Power, Voltage and Current sensors.
+- DC output mapping was validated against a live 40 W / 24 V / 1.6 A test and a prior 0 W state.
 
 ## Version 0.3.6
 - Added confirmed AC Input Power, Voltage, Current and Frequency sensors.
