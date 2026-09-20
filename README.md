@@ -1,69 +1,99 @@
-# BigBlue CP2500 BLE for Home Assistant
+# BigBlue CP2500 BLE для Home Assistant
 
-Experimental local Bluetooth integration for the BigBlue CP2500 portable power station.
+Експериментальна локальна Bluetooth-інтеграція для портативної зарядної станції **BigBlue CP2500**.
 
-## Features
+> Інтеграція створена методом reverse engineering. Частина полів уже підтверджена тестами на реальному пристрої, інші будуть додаватися поступово після перевірки.
+
+## Українська
+
+### Можливості
+
+- State of Charge (SOC)
+- State of Health (SOH)
+- Напруга, струм і потужність акумулятора
+- Залишкова та повна ємність
+- Температура акумулятора
+- AC Input: потужність, напруга, струм, частота, температура
+- DC Output: потужність, напруга, струм
+- AC Output Temperature
+- DC Temperature
+- Напруги 16 комірок
+- Мінімальна/максимальна напруга комірок та delta
+- Завантажувана діагностика з останнім raw BLE frame
+- Кнопка **Dump Raw BLE to Log**
+- Кнопка **Upload BLE Snapshot to GitHub** для приватного журналу вимірювань
+
+### Встановлення через HACS
+
+1. Додайте цей репозиторій у HACS як **Custom Repository**.
+2. Категорія: **Integration**.
+3. Завантажте інтеграцію.
+4. Перезапустіть Home Assistant.
+5. Відкрийте **Налаштування → Пристрої та служби → Додати інтеграцію**.
+6. Знайдіть **BigBlue CP2500 BLE**.
+7. Введіть Bluetooth MAC-адресу станції.
+
+### GitHub-журнал BLE snapshot
+
+У параметрах інтеграції можна вказати приватний GitHub-репозиторій та fine-grained token з правом **Contents: Read and write** тільки для цього репозиторію.
+
+Після натискання **Upload BLE Snapshot to GitHub** інтеграція створює окремий JSON-файл із:
+- часом;
+- розібраними значеннями;
+- повним 236-байтовим BLE frame;
+- отриманими notification chunks.
+
+### Документація
+
+- [Історія змін / Changelog](CHANGELOG.md)
+- [Карта BLE-протоколу](docs/protocol.md)
+- [Нотатки reverse engineering](docs/reverse-engineering.md)
+
+---
+
+## English
+
+Experimental local Bluetooth integration for the **BigBlue CP2500** portable power station.
+
+### Features
+
 - State of Charge (SOC)
 - State of Health (SOH)
 - Battery voltage/current/power
 - Surplus and total capacity
 - Battery temperature
-- AC input power, voltage, current, frequency and temperature
-- DC output power, voltage and current
-- AC output temperature
+- AC Input power, voltage, current, frequency and temperature
+- DC Output power, voltage and current
+- AC Output temperature
 - DC temperature
 - 16 cell voltages
 - Minimum/maximum cell voltage and cell delta
 - Downloadable diagnostics with the latest raw BLE telemetry frame
-- One-tap raw BLE dump button for the Home Assistant log
-- Upload BLE snapshot directly to a private GitHub repository
+- One-tap **Dump Raw BLE to Log** button
+- **Upload BLE Snapshot to GitHub** button for private telemetry logging
 
-## Installation with HACS
-1. Add this repository to HACS as a Custom Repository.
-2. Category: Integration.
-3. Download/install the integration from HACS.
+### Installation with HACS
+
+1. Add this repository to HACS as a **Custom Repository**.
+2. Category: **Integration**.
+3. Download/install the integration.
 4. Restart Home Assistant.
-5. Go to Settings -> Devices & services -> Add integration.
+5. Go to **Settings → Devices & services → Add integration**.
 6. Search for **BigBlue CP2500 BLE**.
 7. Enter the Bluetooth MAC address of the power station.
 
+### Documentation
+
+- [Changelog / Історія змін](CHANGELOG.md)
+- [BLE protocol map](docs/protocol.md)
+- [Reverse engineering notes](docs/reverse-engineering.md)
+
 ## Tested device
+
 - BigBlue CP2500
-- BLE telemetry request via FFE9
+- Telemetry request via FFE9
 - Notifications via FFE4
+- Main telemetry frame: 236 bytes
+- Secondary notification observed: 32 bytes
 
-## Version 0.3.7
-- Added confirmed DC Output Power, Voltage and Current sensors.
-- DC output mapping was validated against a live 40 W / 24 V / 1.6 A test and a prior 0 W state.
-
-## Version 0.3.6
-- Added confirmed AC Input Power, Voltage, Current and Frequency sensors.
-- AC input field mappings were validated against two charging levels (~400 W and ~800 W).
-- Updated uploaded snapshot and diagnostics version markers.
-
-## Version 0.3.5
-- Fixed the Home Assistant 2026.x options flow crash (500 Internal Server Error).
-- Updated the diagnostics version marker.
-
-## Version 0.3.4
-- Added **Upload BLE Snapshot to GitHub** button.
-- GitHub repository and fine-grained token are configured in the integration options.
-- Each button press uploads one timestamped JSON snapshot to the private log repository.
-- The token is not written to diagnostics or logs.
-
-## Version 0.3.3
-- Added a **Dump Raw BLE to Log** button entity.
-- Pressing the button writes the latest 236-byte BLE frame and parsed values to the Home Assistant log.
-- This makes reverse engineering new fields possible directly from the phone without downloading diagnostics.
-
-## Version 0.3.2
-- Reassembles telemetry when a 236-byte BLE response is split across multiple notifications.
-- Adds Home Assistant diagnostics containing the latest raw BLE frame and notification chunks.
-- Improves warning details when a complete telemetry frame is not received.
-
-## Version 0.3.1
-- Renamed the two previously auxiliary temperature sensors to AC Input Temperature and AC Output Temperature.
-- Added DC Temperature.
-- Temperature mappings were matched against values shown on the CP2500 display.
-
-This integration is reverse engineered and experimental.
+Current integration version: **0.3.7**
