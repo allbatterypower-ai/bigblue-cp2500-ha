@@ -31,6 +31,10 @@ Experimental local Bluetooth integration for the BigBlue CP2500 portable power s
 - BLE telemetry request via FFE9
 - Notifications via FFE4
 
+## Version 0.3.5
+- Fixed the Home Assistant 2026.x options flow crash (500 Internal Server Error).
+- Updated the diagnostics version marker.
+
 ## Version 0.3.4
 - Added **Upload BLE Snapshot to GitHub** button.
 - GitHub repository and fine-grained token are configured in the integration options.
