@@ -13,6 +13,7 @@ Experimental local Bluetooth integration for the BigBlue CP2500 portable power s
 - DC temperature
 - 16 cell voltages
 - Minimum/maximum cell voltage and cell delta
+- Downloadable diagnostics with the latest raw BLE telemetry frame
 
 ## Installation with HACS
 1. Add this repository to HACS as a Custom Repository.
@@ -27,6 +28,11 @@ Experimental local Bluetooth integration for the BigBlue CP2500 portable power s
 - BigBlue CP2500
 - BLE telemetry request via FFE9
 - Notifications via FFE4
+
+## Version 0.3.2
+- Reassembles telemetry when a 236-byte BLE response is split across multiple notifications.
+- Adds Home Assistant diagnostics containing the latest raw BLE frame and notification chunks.
+- Improves warning details when a complete telemetry frame is not received.
 
 ## Version 0.3.1
 - Renamed the two previously auxiliary temperature sensors to AC Input Temperature and AC Output Temperature.
