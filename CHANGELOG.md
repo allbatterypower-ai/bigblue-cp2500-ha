@@ -1,5 +1,21 @@
 # Історія змін / Changelog
 
+## v0.3.12
+
+### Українська
+- Додано керування **AC Charging Power Limit** через Home Assistant.
+- Доступні значення: **400 W**, **800 W**, **1200 W**.
+- BLE-команди підтверджено HCI snoop-записом офіційного застосунку BigBlue Energy.
+- Команди записуються у FFE9 через те саме BLE-з'єднання, яке використовує телеметрія.
+- Додано блокування BLE write, щоб телеметрія та керування не писали одночасно.
+
+### English
+- Added **AC Charging Power Limit** control in Home Assistant.
+- Available values: **400 W**, **800 W**, **1200 W**.
+- BLE write commands were confirmed from an HCI snoop capture of the official BigBlue Energy app.
+- Commands are written to FFE9 using the same BLE connection as telemetry.
+- Added BLE write locking so telemetry and control writes do not collide.
+
 ## v0.3.11
 
 ### Українська

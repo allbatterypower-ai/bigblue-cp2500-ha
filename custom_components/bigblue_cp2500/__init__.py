@@ -17,9 +17,16 @@ from homeassistant.util import dt as dt_util
 from .const import DOMAIN, FFE4_UUID, FFE9_UUID, TELEMETRY_REQUEST, POLL_INTERVAL
 
 _LOGGER = logging.getLogger(__name__)
-PLATFORMS = ["sensor", "button"]
+PLATFORMS = ["sensor", "button", "select"]
 _MAIN_HEADER = bytes.fromhex("10 01 00 01 00 fa 15 06")
 _MAIN_FRAME_LENGTH = 236
+
+# Confirmed from the official BigBlue Energy app HCI capture.
+_AC_CHARGING_POWER_COMMANDS = {
+    400: bytes.fromhex("10 01 00 01 00 04 16 31 00 00 00 00 00 00 00 00 00 91 00 00"),
+    800: bytes.fromhex("10 01 00 01 00 04 16 31 00 00 00 00 00 00 00 00 00 23 00 00"),
+    1200: bytes.fromhex("10 01 00 01 00 04 16 31 00 00 00 00 00 00 00 00 00 b4 00 00"),
+}
 
 
 def _u16(data: bytes, offset: int) -> int:
@@ -48,18 +55,15 @@ def parse_telemetry(data: bytes) -> dict:
     soh = data[146]
     soc = data[147]
 
-    # Confirmed AC input fields mapped against the station display.
     ac_input_voltage = _u16(data, 28) / 10.0
     ac_input_frequency = _u16(data, 40) / 100.0
     ac_input_current = _u16(data, 44) / 10.0
     ac_input_power = _u16(data, 50)
 
-    # Confirmed DC output fields mapped against the station display.
     dc_output_voltage = _u16(data, 74) / 10.0
     dc_output_current = _u16(data, 76) / 10.0
     dc_output_power = _u16(data, 78)
 
-    # Temperature fields mapped against the station display.
     ac_input_temperature = _s16(data, 56)
     battery_temperature = _s16(data, 58)
     ac_output_temperature = _s16(data, 60)
@@ -105,9 +109,11 @@ class BigBlueCoordinator(DataUpdateCoordinator):
         self._client: BleakClient | None = None
         self._task: asyncio.Task | None = None
         self._stopping = False
+        self._ble_write_lock = asyncio.Lock()
         self.data = {}
         self.last_raw_main_frame: bytes | None = None
         self.last_raw_notifications: list[bytes] = []
+        self.ac_charging_power: int | None = None
 
     async def async_start(self) -> None:
         self._stopping = False
@@ -129,6 +135,31 @@ class BigBlueCoordinator(DataUpdateCoordinator):
             except Exception:
                 pass
         self._client = None
+
+    async def async_set_ac_charging_power(self, watts: int) -> None:
+        """Set the AC charging power limit using the command captured from the official app."""
+        command = _AC_CHARGING_POWER_COMMANDS.get(watts)
+        if command is None:
+            raise ValueError(f"Unsupported AC charging power: {watts} W")
+
+        client = self._client
+        if client is None or not client.is_connected:
+            raise RuntimeError("BigBlue CP2500 is not connected over Bluetooth")
+
+        async with self._ble_write_lock:
+            await client.write_gatt_char(
+                FFE9_UUID,
+                command,
+                response=False,
+            )
+
+        self.ac_charging_power = watts
+        self.async_update_listeners()
+        _LOGGER.info(
+            "BigBlue %s AC charging power set to %d W",
+            self.address,
+            watts,
+        )
 
     async def _run(self) -> None:
         while not self._stopping:
@@ -161,27 +192,21 @@ class BigBlueCoordinator(DataUpdateCoordinator):
 
                 while self._client.is_connected and not self._stopping:
                     chunks.clear()
-                    await self._client.write_gatt_char(
-                        FFE9_UUID,
-                        TELEMETRY_REQUEST,
-                        response=False,
-                    )
+                    async with self._ble_write_lock:
+                        await self._client.write_gatt_char(
+                            FFE9_UUID,
+                            TELEMETRY_REQUEST,
+                            response=False,
+                        )
 
                     main_frame = None
                     for _ in range(30):
                         await asyncio.sleep(0.1)
 
-                        # BLE stacks may deliver the 236-byte response in one
-                        # notification or split it across several notifications.
                         combined = b"".join(chunks)
                         start = combined.find(_MAIN_HEADER)
-                        if (
-                            start >= 0
-                            and len(combined) >= start + _MAIN_FRAME_LENGTH
-                        ):
-                            main_frame = combined[
-                                start:start + _MAIN_FRAME_LENGTH
-                            ]
+                        if start >= 0 and len(combined) >= start + _MAIN_FRAME_LENGTH:
+                            main_frame = combined[start:start + _MAIN_FRAME_LENGTH]
                             break
 
                     self.last_raw_notifications = list(chunks)
@@ -213,7 +238,6 @@ class BigBlueCoordinator(DataUpdateCoordinator):
                 self._client = None
                 await asyncio.sleep(10)
 
-
     async def async_dump_raw_to_log(self) -> None:
         """Write the latest raw BLE telemetry to the Home Assistant log."""
         if self.last_raw_main_frame is None:
@@ -227,9 +251,7 @@ class BigBlueCoordinator(DataUpdateCoordinator):
                 _LOGGER.warning(
                     "BIGBLUE RAW NOTIFICATIONS %s: %s",
                     self.address,
-                    " | ".join(
-                        chunk.hex(" ") for chunk in self.last_raw_notifications
-                    ),
+                    " | ".join(chunk.hex(" ") for chunk in self.last_raw_notifications),
                 )
             return
 
@@ -239,12 +261,7 @@ class BigBlueCoordinator(DataUpdateCoordinator):
             len(self.last_raw_main_frame),
             self.last_raw_main_frame.hex(" "),
         )
-
-        _LOGGER.warning(
-            "BIGBLUE PARSED DATA %s: %s",
-            self.address,
-            self.data,
-        )
+        _LOGGER.warning("BIGBLUE PARSED DATA %s: %s", self.address, self.data)
 
         if self.last_raw_notifications:
             _LOGGER.warning(
@@ -252,7 +269,6 @@ class BigBlueCoordinator(DataUpdateCoordinator):
                 self.address,
                 [len(chunk) for chunk in self.last_raw_notifications],
             )
-
 
     async def async_upload_snapshot_to_github(self) -> str:
         """Upload the latest BLE snapshot to a configured private GitHub repo."""
@@ -280,7 +296,7 @@ class BigBlueCoordinator(DataUpdateCoordinator):
 
         payload = {
             "timestamp": timestamp,
-            "integration_version": "0.3.11",
+            "integration_version": "0.3.12",
             "device": {
                 "name": "BigBlue CP2500",
                 "address": self.address,
@@ -322,9 +338,7 @@ class BigBlueCoordinator(DataUpdateCoordinator):
 
         html_url = response_json.get("content", {}).get("html_url")
         if not html_url:
-            html_url = (
-                f"https://github.com/{github_repo}/blob/main/{path}"
-            )
+            html_url = f"https://github.com/{github_repo}/blob/main/{path}"
 
         _LOGGER.warning(
             "BIGBLUE SNAPSHOT UPLOADED %s: %s",

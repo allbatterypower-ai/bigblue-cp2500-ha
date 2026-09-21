@@ -22,6 +22,7 @@
 - Завантажувана діагностика з останнім raw BLE frame
 - Кнопка **Dump Raw BLE to Log**
 - Кнопка **Upload BLE Snapshot to GitHub** для приватного журналу вимірювань
+- Керування **AC Charging Power Limit**: 400 W / 800 W / 1200 W
 
 ### Встановлення через HACS
 
@@ -71,6 +72,7 @@ Experimental local Bluetooth integration for the **BigBlue CP2500** portable pow
 - Downloadable diagnostics with the latest raw BLE telemetry frame
 - One-tap **Dump Raw BLE to Log** button
 - **Upload BLE Snapshot to GitHub** button for private telemetry logging
+- **AC Charging Power Limit** control: 400 W / 800 W / 1200 W
 
 ### Installation with HACS
 
@@ -96,4 +98,4 @@ Experimental local Bluetooth integration for the **BigBlue CP2500** portable pow
 - Main telemetry frame: 236 bytes
 - Secondary notification observed: 32 bytes
 
-Current integration version: **0.3.11**
+Current integration version: **0.3.12**
