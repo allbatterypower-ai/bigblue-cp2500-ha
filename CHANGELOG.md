@@ -1,5 +1,15 @@
 # Історія змін / Changelog
 
+## v0.3.10
+
+### Українська
+- Виправлено відображення branding у Home Assistant: замість невдалого широкого logo використовується перевірена квадратна офіційна іконка BigBlue.
+- Оновлено `logo.png`, `logo@2x.png`, `dark_logo.png` та `dark_logo@2x.png`.
+
+### English
+- Fixed Home Assistant branding display: replaced the broken wide logo with the verified square official BigBlue app icon.
+- Updated `logo.png`, `logo@2x.png`, `dark_logo.png`, and `dark_logo@2x.png`.
+
 ## v0.3.9
 
 ### Українська

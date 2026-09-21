@@ -1,7 +1,7 @@
 {
   "domain": "bigblue_cp2500",
   "name": "BigBlue CP2500 BLE",
-  "version": "0.3.9",
+  "version": "0.3.10",
   "documentation": "https://github.com/allbatterypower-ai/bigblue-cp2500-ha",
   "issue_tracker": "https://github.com/allbatterypower-ai/bigblue-cp2500-ha/issues",
   "requirements": [
