@@ -1,5 +1,15 @@
 # Історія змін / Changelog
 
+## v0.3.14
+
+### Українська
+- Замінено неправильний `icon.png` на справжню квадратну іконку з APK BigBlue Energy.
+- Та сама перевірена іконка використовується для `icon.png` та `icon@2x.png`, щоб Home Assistant більше не показував тонку синю смугу замість ярлика.
+
+### English
+- Replaced the incorrect `icon.png` with the real square icon extracted from the BigBlue Energy APK.
+- The verified square icon is used for both `icon.png` and `icon@2x.png` so Home Assistant no longer renders a thin blue line instead of the integration icon.
+
 ## v0.3.13
 
 ### Українська
