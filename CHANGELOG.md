@@ -1,5 +1,15 @@
 # Історія змін / Changelog
 
+## v0.3.8
+
+### Українська
+- Додано офіційну іконку BigBlue для сторінки користувацької інтеграції в Home Assistant.
+- Додано локальні brand assets: `brand/icon.png` (256×256) та `brand/icon@2x.png` (512×512).
+
+### English
+- Added the official BigBlue icon for the custom integration page in Home Assistant.
+- Added local brand assets: `brand/icon.png` (256×256) and `brand/icon@2x.png` (512×512).
+
 ## v0.3.7
 
 ### Українська
