@@ -1,5 +1,15 @@
 # Історія змін / Changelog
 
+## v0.3.9
+
+### Українська
+- Додано повний логотип BigBlue для сторінки інтеграції Home Assistant.
+- Додано окремий `dark_logo.png` для темної теми.
+
+### English
+- Added the full BigBlue logo for the Home Assistant integration page.
+- Added a separate `dark_logo.png` for dark mode.
+
 ## v0.3.8
 
 ### Українська
