@@ -1,5 +1,17 @@
 # Історія змін / Changelog
 
+## v0.3.15
+
+### Українська
+- Виправлено критичну синтаксичну помилку в `__init__.py`, через яку інтеграція не завантажувалась після v0.3.14.
+- Помилка була спричинена буквальними символами `\\n` у рядку ініціалізації BLE lock/ACK event.
+- Логіка ACK для AC Charging Power та виправлена іконка залишені без змін.
+
+### English
+- Fixed a critical syntax error in `__init__.py` that prevented the integration from loading after v0.3.14.
+- The issue was caused by literal `\\n` characters in the BLE lock/ACK event initialization line.
+- AC Charging Power ACK logic and the corrected icon are unchanged.
+
 ## v0.3.14
 
 ### Українська

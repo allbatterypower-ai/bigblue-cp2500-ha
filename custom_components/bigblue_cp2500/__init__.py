@@ -109,7 +109,8 @@ class BigBlueCoordinator(DataUpdateCoordinator):
         self._client: BleakClient | None = None
         self._task: asyncio.Task | None = None
         self._stopping = False
-        self._ble_write_lock = asyncio.Lock()\n        self._control_ack_event = asyncio.Event()
+        self._ble_write_lock = asyncio.Lock()
+        self._control_ack_event = asyncio.Event()
         self.data = {}
         self.last_raw_main_frame: bytes | None = None
         self.last_raw_notifications: list[bytes] = []
@@ -310,7 +311,7 @@ class BigBlueCoordinator(DataUpdateCoordinator):
 
         payload = {
             "timestamp": timestamp,
-            "integration_version": "0.3.13",
+            "integration_version": "0.3.15",
             "device": {
                 "name": "BigBlue CP2500",
                 "address": self.address,
