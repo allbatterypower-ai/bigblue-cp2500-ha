@@ -1,5 +1,15 @@
 # Історія змін / Changelog
 
+## v0.3.16
+
+### Українська
+- Оновлено іконку інтеграції на погоджений круглий синій варіант без внутрішньої білої крапки.
+- Візуально іконка краще читається у малому розмірі на сторінці пристрою Home Assistant.
+
+### English
+- Updated the integration icon to the approved blue circular variant without the inner white dot.
+- The icon is more legible at small sizes on the Home Assistant device page.
+
 ## v0.3.15
 
 ### Українська
