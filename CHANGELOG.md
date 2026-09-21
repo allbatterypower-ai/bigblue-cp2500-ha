@@ -1,5 +1,17 @@
 # Історія змін / Changelog
 
+## v0.3.13
+
+### Українська
+- Виправлено можливу колізію між polling телеметрії та BLE-командами керування.
+- Тепер увесь цикл telemetry request/response захищено одним BLE transaction lock.
+- Після зміни AC Charging Power інтеграція очікує реальне підтвердження `16 32` від CP2500; без ACK значення не вважається зміненим.
+
+### English
+- Fixed a possible collision between telemetry polling and BLE control writes.
+- The complete telemetry request/response transaction is now protected by one BLE lock.
+- AC Charging Power changes now wait for the real `16 32` acknowledgement from the CP2500; without ACK, the value is not accepted as changed.
+
 ## v0.3.12
 
 ### Українська

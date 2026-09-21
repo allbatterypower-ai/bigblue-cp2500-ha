@@ -109,7 +109,7 @@ class BigBlueCoordinator(DataUpdateCoordinator):
         self._client: BleakClient | None = None
         self._task: asyncio.Task | None = None
         self._stopping = False
-        self._ble_write_lock = asyncio.Lock()
+        self._ble_write_lock = asyncio.Lock()\n        self._control_ack_event = asyncio.Event()
         self.data = {}
         self.last_raw_main_frame: bytes | None = None
         self.last_raw_notifications: list[bytes] = []
@@ -147,16 +147,23 @@ class BigBlueCoordinator(DataUpdateCoordinator):
             raise RuntimeError("BigBlue CP2500 is not connected over Bluetooth")
 
         async with self._ble_write_lock:
+            self._control_ack_event.clear()
             await client.write_gatt_char(
                 FFE9_UUID,
                 command,
                 response=False,
             )
+            try:
+                await asyncio.wait_for(self._control_ack_event.wait(), timeout=2.0)
+            except TimeoutError as err:
+                raise RuntimeError(
+                    f"BigBlue CP2500 did not acknowledge AC charging power {watts} W"
+                ) from err
 
         self.ac_charging_power = watts
         self.async_update_listeners()
         _LOGGER.info(
-            "BigBlue %s AC charging power set to %d W",
+            "BigBlue %s AC charging power set to %d W and acknowledged",
             self.address,
             watts,
         )
@@ -186,28 +193,35 @@ class BigBlueCoordinator(DataUpdateCoordinator):
                 chunks: list[bytes] = []
 
                 def notification_callback(_sender, payload: bytearray) -> None:
-                    chunks.append(bytes(payload))
+                    packet = bytes(payload)
+                    chunks.append(packet)
+                    if (
+                        len(packet) >= 8
+                        and packet[:6] == bytes.fromhex("10 01 00 01 00 04")
+                        and packet[6:8] == bytes.fromhex("16 32")
+                    ):
+                        self._control_ack_event.set()
 
                 await self._client.start_notify(FFE4_UUID, notification_callback)
 
                 while self._client.is_connected and not self._stopping:
-                    chunks.clear()
+                    main_frame = None
                     async with self._ble_write_lock:
+                        chunks.clear()
                         await self._client.write_gatt_char(
                             FFE9_UUID,
                             TELEMETRY_REQUEST,
                             response=False,
                         )
 
-                    main_frame = None
-                    for _ in range(30):
-                        await asyncio.sleep(0.1)
+                        for _ in range(30):
+                            await asyncio.sleep(0.1)
 
-                        combined = b"".join(chunks)
-                        start = combined.find(_MAIN_HEADER)
-                        if start >= 0 and len(combined) >= start + _MAIN_FRAME_LENGTH:
-                            main_frame = combined[start:start + _MAIN_FRAME_LENGTH]
-                            break
+                            combined = b"".join(chunks)
+                            start = combined.find(_MAIN_HEADER)
+                            if start >= 0 and len(combined) >= start + _MAIN_FRAME_LENGTH:
+                                main_frame = combined[start:start + _MAIN_FRAME_LENGTH]
+                                break
 
                     self.last_raw_notifications = list(chunks)
 
@@ -296,7 +310,7 @@ class BigBlueCoordinator(DataUpdateCoordinator):
 
         payload = {
             "timestamp": timestamp,
-            "integration_version": "0.3.12",
+            "integration_version": "0.3.13",
             "device": {
                 "name": "BigBlue CP2500",
                 "address": self.address,
