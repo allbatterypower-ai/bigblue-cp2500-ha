@@ -280,7 +280,7 @@ class BigBlueCoordinator(DataUpdateCoordinator):
 
         payload = {
             "timestamp": timestamp,
-            "integration_version": "0.3.7",
+            "integration_version": "0.3.11",
             "device": {
                 "name": "BigBlue CP2500",
                 "address": self.address,

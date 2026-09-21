@@ -1,5 +1,19 @@
 # Історія змін / Changelog
 
+## v0.3.11
+
+### Українська
+- Перероблено логотип інтеграції під горизонтальний слот Home Assistant.
+- Додано окремі світлий і темний варіанти логотипа з прозорим фоном.
+- Прибрано старі `logo@2x.png` / `dark_logo@2x.png`, щоб Home Assistant не підхоплював попередні квадратні файли.
+- Оновлено маркер версії в GitHub BLE snapshot та README.
+
+### English
+- Reworked the integration logo for Home Assistant's horizontal branding slot.
+- Added separate light and dark transparent logo variants.
+- Removed the old `logo@2x.png` / `dark_logo@2x.png` files so Home Assistant does not select the previous square assets.
+- Updated the GitHub BLE snapshot version marker and README.
+
 ## v0.3.10
 
 ### Українська
