@@ -1,5 +1,17 @@
 # Історія змін / Changelog
 
+## v0.3.20
+
+### Українська
+- Виправлено branding на сторінці інтеграції Home Assistant.
+- У списку інтеграцій кругла іконка вже відображалась правильно, але сторінка самої інтеграції використовувала окремі старі `logo.png` / `dark_logo.png`, через що логотип виглядав обрізаним.
+- `logo.png` та `dark_logo.png` тепер використовують той самий погоджений круглий синій знак BigBlue.
+
+### English
+- Fixed branding on the Home Assistant integration details page.
+- The integrations list already showed the circular icon correctly, but the details page still used the older separate `logo.png` / `dark_logo.png`, which appeared cropped.
+- `logo.png` and `dark_logo.png` now use the same approved circular blue BigBlue mark.
+
 ## v0.3.19
 
 ### Українська
