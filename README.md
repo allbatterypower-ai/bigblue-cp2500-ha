@@ -24,6 +24,7 @@
 - Кнопка **Upload BLE Snapshot to GitHub** для приватного журналу вимірювань
 - Керування **AC Charging Power Limit**: 400 W / 800 W / 1200 W
 - Перемикачі **AC Output** та **DC Output**
+- Автоматичне GitHub BLE logging з інтервалом та умовою по SOC / AC Input
 
 ### Встановлення через HACS
 
@@ -39,7 +40,9 @@
 
 У параметрах інтеграції можна вказати приватний GitHub-репозиторій та fine-grained token з правом **Contents: Read and write** тільки для цього репозиторію.
 
-Після натискання **Upload BLE Snapshot to GitHub** інтеграція створює окремий JSON-файл із:
+Після натискання **Upload BLE Snapshot to GitHub** інтеграція створює окремий JSON-файл. У параметрах інтеграції також можна ввімкнути автоматичне завантаження кожні 5/10/15/30/60 хвилин, задати мінімальний SOC та за бажанням логувати тільки при підключеному AC Input.
+
+Snapshot містить:
 - часом;
 - розібраними значеннями;
 - повним 236-байтовим BLE frame;
@@ -75,6 +78,7 @@ Experimental local Bluetooth integration for the **BigBlue CP2500** portable pow
 - **Upload BLE Snapshot to GitHub** button for private telemetry logging
 - **AC Charging Power Limit** control: 400 W / 800 W / 1200 W
 - **AC Output** and **DC Output** switches
+- Automatic GitHub BLE logging with interval and SOC / AC Input conditions
 
 ### Installation with HACS
 
@@ -100,4 +104,4 @@ Experimental local Bluetooth integration for the **BigBlue CP2500** portable pow
 - Main telemetry frame: 236 bytes
 - Secondary notification observed: 32 bytes
 
-Current integration version: **0.3.18**
+Current integration version: **0.3.19**

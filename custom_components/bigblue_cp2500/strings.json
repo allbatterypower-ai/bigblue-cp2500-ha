@@ -15,10 +15,13 @@
     "step": {
       "init": {
         "title": "BigBlue CP2500 options",
-        "description": "Optional GitHub upload settings. Use a fine-grained token with Contents: Read and write access only to the private log repository.",
+        "description": "GitHub snapshot settings. Configure manual upload credentials and optional automatic logging.",
         "data": {
           "github_repo": "GitHub repository (owner/repo)",
-          "github_token": "GitHub fine-grained token"
+          "github_token": "GitHub fine-grained token",
+          "auto_log_interval": "Automatic logging interval (minutes; 0 = off)",
+          "auto_log_min_soc": "Automatic logging minimum SOC (%)",
+          "auto_log_only_ac_connected": "Automatic logging only while AC input is connected"
         }
       }
     }

@@ -4,6 +4,7 @@ import asyncio
 import base64
 import json
 import logging
+import time
 
 from bleak import BleakClient
 from bleak_retry_connector import establish_connection
@@ -14,7 +15,16 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.util import dt as dt_util
 
-from .const import DOMAIN, FFE4_UUID, FFE9_UUID, TELEMETRY_REQUEST, POLL_INTERVAL
+from .const import (
+    DEFAULT_AUTO_LOG_INTERVAL,
+    DEFAULT_AUTO_LOG_MIN_SOC,
+    DEFAULT_AUTO_LOG_ONLY_AC_CONNECTED,
+    DOMAIN,
+    FFE4_UUID,
+    FFE9_UUID,
+    POLL_INTERVAL,
+    TELEMETRY_REQUEST,
+)
 
 _LOGGER = logging.getLogger(__name__)
 PLATFORMS = ["sensor", "button", "select", "switch"]
@@ -139,6 +149,7 @@ class BigBlueCoordinator(DataUpdateCoordinator):
         self.ac_charging_power: int | None = None
         self.ac_output_enabled: bool | None = None
         self.dc_output_enabled: bool | None = None
+        self._last_auto_snapshot_monotonic: float | None = None
 
     async def async_start(self) -> None:
         self._stopping = False
@@ -309,6 +320,7 @@ class BigBlueCoordinator(DataUpdateCoordinator):
                     else:
                         self.last_raw_main_frame = main_frame
                         self.async_set_updated_data(parse_telemetry(main_frame))
+                        await self._async_maybe_auto_upload_snapshot()
 
                     await asyncio.sleep(POLL_INTERVAL)
 
@@ -324,6 +336,56 @@ class BigBlueCoordinator(DataUpdateCoordinator):
                         pass
                 self._client = None
                 await asyncio.sleep(10)
+
+    async def _async_maybe_auto_upload_snapshot(self) -> None:
+        """Upload a snapshot automatically when the configured conditions match."""
+        interval_minutes = int(
+            self.entry.options.get("auto_log_interval", DEFAULT_AUTO_LOG_INTERVAL)
+        )
+        if interval_minutes <= 0:
+            return
+
+        min_soc = int(
+            self.entry.options.get("auto_log_min_soc", DEFAULT_AUTO_LOG_MIN_SOC)
+        )
+        if int(self.data.get("soc", -1)) < min_soc:
+            return
+
+        only_ac_connected = bool(
+            self.entry.options.get(
+                "auto_log_only_ac_connected",
+                DEFAULT_AUTO_LOG_ONLY_AC_CONNECTED,
+            )
+        )
+        if only_ac_connected and float(self.data.get("ac_input_voltage", 0) or 0) <= 0:
+            return
+
+        now_monotonic = time.monotonic()
+        if (
+            self._last_auto_snapshot_monotonic is not None
+            and now_monotonic - self._last_auto_snapshot_monotonic
+            < interval_minutes * 60
+        ):
+            return
+
+        # Record the attempt time before uploading so a temporary GitHub error
+        # does not cause retries every telemetry poll.
+        self._last_auto_snapshot_monotonic = now_monotonic
+        try:
+            url = await self.async_upload_snapshot_to_github(source="auto")
+        except Exception as err:
+            _LOGGER.warning(
+                "BigBlue %s automatic GitHub snapshot upload failed: %s",
+                self.address,
+                err,
+            )
+            return
+
+        _LOGGER.info(
+            "BigBlue %s automatic GitHub snapshot uploaded: %s",
+            self.address,
+            url,
+        )
 
     async def async_dump_raw_to_log(self) -> None:
         """Write the latest raw BLE telemetry to the Home Assistant log."""
@@ -357,7 +419,7 @@ class BigBlueCoordinator(DataUpdateCoordinator):
                 [len(chunk) for chunk in self.last_raw_notifications],
             )
 
-    async def async_upload_snapshot_to_github(self) -> str:
+    async def async_upload_snapshot_to_github(self, source: str = "manual") -> str:
         """Upload the latest BLE snapshot to a configured private GitHub repo."""
         github_token = self.entry.options.get("github_token")
         github_repo = self.entry.options.get(
@@ -383,7 +445,8 @@ class BigBlueCoordinator(DataUpdateCoordinator):
 
         payload = {
             "timestamp": timestamp,
-            "integration_version": "0.3.18",
+            "integration_version": "0.3.19",
+            "snapshot_source": source,
             "device": {
                 "name": "BigBlue CP2500",
                 "address": self.address,

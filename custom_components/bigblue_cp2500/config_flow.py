@@ -4,7 +4,14 @@ import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.const import CONF_ADDRESS
 
-from .const import DOMAIN, DEFAULT_ADDRESS
+from .const import (
+    AUTO_LOG_INTERVAL_OPTIONS,
+    DEFAULT_ADDRESS,
+    DEFAULT_AUTO_LOG_INTERVAL,
+    DEFAULT_AUTO_LOG_MIN_SOC,
+    DEFAULT_AUTO_LOG_ONLY_AC_CONNECTED,
+    DOMAIN,
+)
 
 DEFAULT_GITHUB_REPO = "allbatterypower-ai/bigblue-cp2500-logs"
 
@@ -55,6 +62,25 @@ class BigBlueOptionsFlow(config_entries.OptionsFlow):
                             "github_token", ""
                         ),
                     ): str,
+                    vol.Optional(
+                        "auto_log_interval",
+                        default=self.config_entry.options.get(
+                            "auto_log_interval", DEFAULT_AUTO_LOG_INTERVAL
+                        ),
+                    ): vol.In(AUTO_LOG_INTERVAL_OPTIONS),
+                    vol.Optional(
+                        "auto_log_min_soc",
+                        default=self.config_entry.options.get(
+                            "auto_log_min_soc", DEFAULT_AUTO_LOG_MIN_SOC
+                        ),
+                    ): vol.All(vol.Coerce(int), vol.Range(min=0, max=100)),
+                    vol.Optional(
+                        "auto_log_only_ac_connected",
+                        default=self.config_entry.options.get(
+                            "auto_log_only_ac_connected",
+                            DEFAULT_AUTO_LOG_ONLY_AC_CONNECTED,
+                        ),
+                    ): bool,
                 }
             ),
         )

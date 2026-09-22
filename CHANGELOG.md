@@ -1,5 +1,23 @@
 # Історія змін / Changelog
 
+## v0.3.19
+
+### Українська
+- Додано вбудоване **автоматичне GitHub BLE logging** без окремої автоматизації Home Assistant.
+- У параметрах інтеграції доступні інтервали: **Off / 5 / 10 / 15 / 30 / 60 хв**.
+- Додано поріг **Minimum SOC** для автологування, за замовчуванням 95%.
+- Додано опцію логувати тільки коли присутня напруга на **AC Input**.
+- Автоматичні snapshot позначаються `"snapshot_source": "auto"`; ручні — `"manual"`.
+- При помилці GitHub інтеграція не спамить повторними запитами кожні 15 секунд.
+
+### English
+- Added built-in **automatic GitHub BLE logging** without requiring a Home Assistant automation.
+- Available intervals: **Off / 5 / 10 / 15 / 30 / 60 minutes**.
+- Added a configurable **Minimum SOC** threshold, default 95%.
+- Added an option to log only while **AC Input** is connected.
+- Automatic snapshots are tagged `"snapshot_source": "auto"`; manual snapshots as `"manual"`.
+- GitHub errors are rate-limited so a failed upload does not retry every telemetry poll.
+
 ## v0.3.18
 
 ### Українська
