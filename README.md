@@ -104,4 +104,4 @@ Experimental local Bluetooth integration for the **BigBlue CP2500** portable pow
 - Main telemetry frame: 236 bytes
 - Secondary notification observed: 32 bytes
 
-Current integration version: **0.3.21**
+Current integration version: **0.3.22**

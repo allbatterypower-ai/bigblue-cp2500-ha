@@ -1,5 +1,17 @@
 # Історія змін / Changelog
 
+## v0.3.22
+
+### Українська
+- Повернуто погоджений горизонтальний логотип **BigBlue CP2500 BLE** для logo-слотів Home Assistant.
+- Кругла синя іконка `icon.png` / `icon@2x.png` залишена без змін для списку інтеграцій.
+- Для `logo.png` та `dark_logo.png` використано перевірені файли з v0.3.11.
+
+### English
+- Restored the approved horizontal **BigBlue CP2500 BLE** logo for Home Assistant logo slots.
+- The circular blue `icon.png` / `icon@2x.png` remains unchanged for the integrations list.
+- Reused the validated `logo.png` and `dark_logo.png` assets from v0.3.11.
+
 ## v0.3.21
 
 ### Українська
