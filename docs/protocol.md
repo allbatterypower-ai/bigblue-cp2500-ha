@@ -32,6 +32,26 @@ Telemetry request:
 
 Після другого write офіційний застосунок отримує коротке підтвердження з кодом `16 32`.
 
+### AC / DC Output switches
+
+APK BigBlue Energy містить такі команди у `Code` / `CodeCmd`:
+
+- `DCS = 16 07` — DC Output switch
+- `ACS = 16 09` — AC Output switch
+- `sendCodeSetDCSwitch(boolean)`
+- `sendCodeSetACSwitch(boolean)`
+
+Обидва методи передають 4-байтовий payload:
+
+- ON: `00 00 00 01`
+- OFF: `00 00 00 00`
+
+Команда проходить через той самий `CodeAssemble`, що й Charging Power, тому 22-байтовий frame передається двома FFE9 writes: 20 байт + 2 байти.
+
+Очікувані парні response codes:
+- DC: `16 08`
+- AC: `16 0A`
+
 ## Підтверджені / використовувані поля
 
 Offsets рахуються від нульового байта 236-байтового main frame.

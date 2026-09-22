@@ -17,9 +17,14 @@ from homeassistant.util import dt as dt_util
 from .const import DOMAIN, FFE4_UUID, FFE9_UUID, TELEMETRY_REQUEST, POLL_INTERVAL
 
 _LOGGER = logging.getLogger(__name__)
-PLATFORMS = ["sensor", "button", "select"]
+PLATFORMS = ["sensor", "button", "select", "switch"]
 _MAIN_HEADER = bytes.fromhex("10 01 00 01 00 fa 15 06")
 _MAIN_FRAME_LENGTH = 236
+_CONTROL_HEADER = bytes.fromhex("10 01 00 01 00 04")
+_AC_SWITCH_COMMAND = bytes.fromhex("16 09")
+_AC_SWITCH_ACK = bytes.fromhex("16 0a")
+_DC_SWITCH_COMMAND = bytes.fromhex("16 07")
+_DC_SWITCH_ACK = bytes.fromhex("16 08")
 
 # Confirmed from the official BigBlue Energy app HCI capture.
 _AC_CHARGING_POWER_COMMANDS = {
@@ -44,6 +49,13 @@ def _u16(data: bytes, offset: int) -> int:
 
 def _s16(data: bytes, offset: int) -> int:
     return int.from_bytes(data[offset:offset + 2], "little", signed=True)
+
+
+def _build_boolean_control_command(command: bytes, enabled: bool) -> tuple[bytes, bytes]:
+    payload = (1 if enabled else 0).to_bytes(4, "big")
+    checksum = sum(payload) & 0xFF
+    frame = _CONTROL_HEADER + command + bytes(9) + bytes([checksum]) + payload
+    return frame[:20], frame[20:]
 
 
 def parse_telemetry(data: bytes) -> dict:
@@ -120,10 +132,13 @@ class BigBlueCoordinator(DataUpdateCoordinator):
         self._stopping = False
         self._ble_write_lock = asyncio.Lock()
         self._control_ack_event = asyncio.Event()
+        self._expected_control_ack: bytes | None = None
         self.data = {}
         self.last_raw_main_frame: bytes | None = None
         self.last_raw_notifications: list[bytes] = []
         self.ac_charging_power: int | None = None
+        self.ac_output_enabled: bool | None = None
+        self.dc_output_enabled: bool | None = None
 
     async def async_start(self) -> None:
         self._stopping = False
@@ -146,30 +161,45 @@ class BigBlueCoordinator(DataUpdateCoordinator):
                 pass
         self._client = None
 
-    async def async_set_ac_charging_power(self, watts: int) -> None:
-        """Set the AC charging power limit using the command captured from the official app."""
-        command_parts = _AC_CHARGING_POWER_COMMANDS.get(watts)
-        if command_parts is None:
-            raise ValueError(f"Unsupported AC charging power: {watts} W")
-
+    async def _async_send_control_parts(
+        self,
+        command_parts: tuple[bytes, ...],
+        expected_ack: bytes,
+        description: str,
+    ) -> None:
         client = self._client
         if client is None or not client.is_connected:
             raise RuntimeError("BigBlue CP2500 is not connected over Bluetooth")
 
         async with self._ble_write_lock:
+            self._expected_control_ack = expected_ack
             self._control_ack_event.clear()
-            for command_part in command_parts:
-                await client.write_gatt_char(
-                    FFE9_UUID,
-                    command_part,
-                    response=False,
-                )
             try:
+                for command_part in command_parts:
+                    await client.write_gatt_char(
+                        FFE9_UUID,
+                        command_part,
+                        response=False,
+                    )
                 await asyncio.wait_for(self._control_ack_event.wait(), timeout=2.0)
             except TimeoutError as err:
                 raise RuntimeError(
-                    f"BigBlue CP2500 did not acknowledge AC charging power {watts} W"
+                    f"BigBlue CP2500 did not acknowledge {description}"
                 ) from err
+            finally:
+                self._expected_control_ack = None
+
+    async def async_set_ac_charging_power(self, watts: int) -> None:
+        """Set the AC charging power limit using the official-app protocol."""
+        command_parts = _AC_CHARGING_POWER_COMMANDS.get(watts)
+        if command_parts is None:
+            raise ValueError(f"Unsupported AC charging power: {watts} W")
+
+        await self._async_send_control_parts(
+            command_parts,
+            bytes.fromhex("16 32"),
+            f"AC charging power {watts} W",
+        )
 
         self.ac_charging_power = watts
         self.async_update_listeners()
@@ -177,6 +207,36 @@ class BigBlueCoordinator(DataUpdateCoordinator):
             "BigBlue %s AC charging power set to %d W and acknowledged",
             self.address,
             watts,
+        )
+
+    async def async_set_ac_output(self, enabled: bool) -> None:
+        """Turn the AC output on or off."""
+        await self._async_send_control_parts(
+            _build_boolean_control_command(_AC_SWITCH_COMMAND, enabled),
+            _AC_SWITCH_ACK,
+            f"AC output {'ON' if enabled else 'OFF'}",
+        )
+        self.ac_output_enabled = enabled
+        self.async_update_listeners()
+        _LOGGER.info(
+            "BigBlue %s AC output set to %s and acknowledged",
+            self.address,
+            "ON" if enabled else "OFF",
+        )
+
+    async def async_set_dc_output(self, enabled: bool) -> None:
+        """Turn the DC output on or off."""
+        await self._async_send_control_parts(
+            _build_boolean_control_command(_DC_SWITCH_COMMAND, enabled),
+            _DC_SWITCH_ACK,
+            f"DC output {'ON' if enabled else 'OFF'}",
+        )
+        self.dc_output_enabled = enabled
+        self.async_update_listeners()
+        _LOGGER.info(
+            "BigBlue %s DC output set to %s and acknowledged",
+            self.address,
+            "ON" if enabled else "OFF",
         )
 
     async def _run(self) -> None:
@@ -206,10 +266,12 @@ class BigBlueCoordinator(DataUpdateCoordinator):
                 def notification_callback(_sender, payload: bytearray) -> None:
                     packet = bytes(payload)
                     chunks.append(packet)
+                    expected_ack = self._expected_control_ack
                     if (
-                        len(packet) >= 8
-                        and packet[:6] == bytes.fromhex("10 01 00 01 00 04")
-                        and packet[6:8] == bytes.fromhex("16 32")
+                        expected_ack is not None
+                        and len(packet) >= 8
+                        and packet[:6] == _CONTROL_HEADER
+                        and packet[6:8] == expected_ack
                     ):
                         self._control_ack_event.set()
 
@@ -321,7 +383,7 @@ class BigBlueCoordinator(DataUpdateCoordinator):
 
         payload = {
             "timestamp": timestamp,
-            "integration_version": "0.3.17",
+            "integration_version": "0.3.18",
             "device": {
                 "name": "BigBlue CP2500",
                 "address": self.address,

@@ -1,5 +1,21 @@
 # Історія змін / Changelog
 
+## v0.3.18
+
+### Українська
+- Додано керування **AC Output** та **DC Output** як switch entities у Home Assistant.
+- Протокол отримано безпосередньо з APK BigBlue Energy: `ACS = 16 09`, `DCS = 16 07`, payload `00 00 00 01` = ON, `00 00 00 00` = OFF.
+- Команди використовують той самий двочастинний FFE9 transport, що й уже перевірений AC Charging Power Limit.
+- Додано очікування ACK `16 0A` для AC та `16 08` для DC.
+- Виправлено branding icon: тепер `icon.png` має 256×256, `icon@2x.png` — 512×512; використано погоджений круглий синій варіант.
+
+### English
+- Added **AC Output** and **DC Output** switch entities in Home Assistant.
+- Protocol was recovered directly from the BigBlue Energy APK: `ACS = 16 09`, `DCS = 16 07`, payload `00 00 00 01` = ON, `00 00 00 00` = OFF.
+- Commands use the same two-part FFE9 transport as the now-validated AC Charging Power Limit.
+- Added ACK handling for `16 0A` (AC) and `16 08` (DC).
+- Fixed branding icon sizes: `icon.png` is now 256×256 and `icon@2x.png` is 512×512, using the approved circular blue icon.
+
 ## v0.3.17
 
 ### Українська
