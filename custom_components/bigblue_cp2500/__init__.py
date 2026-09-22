@@ -23,9 +23,18 @@ _MAIN_FRAME_LENGTH = 236
 
 # Confirmed from the official BigBlue Energy app HCI capture.
 _AC_CHARGING_POWER_COMMANDS = {
-    400: bytes.fromhex("10 01 00 01 00 04 16 31 00 00 00 00 00 00 00 00 00 91 00 00"),
-    800: bytes.fromhex("10 01 00 01 00 04 16 31 00 00 00 00 00 00 00 00 00 23 00 00"),
-    1200: bytes.fromhex("10 01 00 01 00 04 16 31 00 00 00 00 00 00 00 00 00 b4 00 00"),
+    400: (
+        bytes.fromhex("10 01 00 01 00 04 16 31 00 00 00 00 00 00 00 00 00 91 00 00"),
+        bytes.fromhex("01 90"),
+    ),
+    800: (
+        bytes.fromhex("10 01 00 01 00 04 16 31 00 00 00 00 00 00 00 00 00 23 00 00"),
+        bytes.fromhex("03 20"),
+    ),
+    1200: (
+        bytes.fromhex("10 01 00 01 00 04 16 31 00 00 00 00 00 00 00 00 00 b4 00 00"),
+        bytes.fromhex("04 b0"),
+    ),
 }
 
 
@@ -139,8 +148,8 @@ class BigBlueCoordinator(DataUpdateCoordinator):
 
     async def async_set_ac_charging_power(self, watts: int) -> None:
         """Set the AC charging power limit using the command captured from the official app."""
-        command = _AC_CHARGING_POWER_COMMANDS.get(watts)
-        if command is None:
+        command_parts = _AC_CHARGING_POWER_COMMANDS.get(watts)
+        if command_parts is None:
             raise ValueError(f"Unsupported AC charging power: {watts} W")
 
         client = self._client
@@ -149,11 +158,12 @@ class BigBlueCoordinator(DataUpdateCoordinator):
 
         async with self._ble_write_lock:
             self._control_ack_event.clear()
-            await client.write_gatt_char(
-                FFE9_UUID,
-                command,
-                response=False,
-            )
+            for command_part in command_parts:
+                await client.write_gatt_char(
+                    FFE9_UUID,
+                    command_part,
+                    response=False,
+                )
             try:
                 await asyncio.wait_for(self._control_ack_event.wait(), timeout=2.0)
             except TimeoutError as err:
@@ -311,7 +321,7 @@ class BigBlueCoordinator(DataUpdateCoordinator):
 
         payload = {
             "timestamp": timestamp,
-            "integration_version": "0.3.15",
+            "integration_version": "0.3.17",
             "device": {
                 "name": "BigBlue CP2500",
                 "address": self.address,

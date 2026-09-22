@@ -1,5 +1,19 @@
 # Історія змін / Changelog
 
+## v0.3.17
+
+### Українська
+- Виправлено протокол зміни **AC Charging Power Limit** після повторного аналізу HCI snoop.
+- Офіційний застосунок надсилає команду не одним записом, а **двома послідовними Write Without Response** у FFE9.
+- Другий 2-байтовий фрагмент містить саме значення потужності у big-endian: `01 90` = 400 W, `03 20` = 800 W, `04 B0` = 1200 W.
+- ACK `16 32` очікується лише після відправлення обох фрагментів.
+
+### English
+- Fixed the **AC Charging Power Limit** protocol after re-checking the HCI snoop capture.
+- The official app sends the command as **two consecutive Write Without Response** operations to FFE9, not one write.
+- The second 2-byte fragment contains the actual power value in big-endian: `01 90` = 400 W, `03 20` = 800 W, `04 B0` = 1200 W.
+- ACK `16 32` is awaited only after both fragments are sent.
+
 ## v0.3.16
 
 ### Українська
