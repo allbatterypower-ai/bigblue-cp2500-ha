@@ -1,5 +1,17 @@
 # Історія змін / Changelog
 
+## v0.3.21
+
+### Українська
+- Виправлено обрізання логотипа на сторінці інтеграції Home Assistant.
+- Видалено окремі `logo.png` та `dark_logo.png`.
+- Home Assistant тепер використовує квадратний `icon.png` як fallback для logo, що є рекомендованим варіантом, коли бренд використовує той самий знак для icon і logo.
+
+### English
+- Fixed the cropped logo on the Home Assistant integration details page.
+- Removed separate `logo.png` and `dark_logo.png`.
+- Home Assistant now falls back to the square `icon.png` for the logo, which is the recommended setup when the same artwork is used for both.
+
 ## v0.3.20
 
 ### Українська
