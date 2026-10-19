@@ -106,8 +106,8 @@ def parse_telemetry(data: bytes) -> dict:
     time_to_empty = _u16(data, 224)
 
     result = {
-        "time_to_full": time_to_full if battery_current > 0 and time_to_full != 0xFFFF else None,
-        "time_to_empty": time_to_empty if battery_current < 0 and time_to_empty != 0xFFFF else None,
+        "time_to_full": time_to_full if battery_current > 0 and 0 < time_to_full < 0xFFFF else None,
+        "time_to_empty": time_to_empty if battery_current < 0 and 0 < time_to_empty < 0xFFFF else None,
         "soc": soc,
         "soh": soh,
         "battery_voltage": round(battery_voltage, 2),
