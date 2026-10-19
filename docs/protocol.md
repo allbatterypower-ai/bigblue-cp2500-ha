@@ -10,7 +10,7 @@
 | Telemetry notify characteristic | FFE4 |
 | Main frame | 236 bytes |
 | Main header | `10 01 00 01 00 fa 15 06` |
-| Secondary notification | 32 bytes, призначення ще досліджується |
+| Secondary notification | 32 bytes, містить статуси виходів |
 
 Telemetry request:
 
@@ -98,7 +98,7 @@ Offsets рахуються від нульового байта 236-байтов
 - DC Input Voltage
 - DC Input Current
 - Перевірка сенсорів часу безпосередньо в Home Assistant
-- призначення 32-байтового secondary notification
+- решта полів 32-байтового secondary notification
 
 ## Оцінки залишкового часу (2026-10-20)
 
@@ -150,3 +150,21 @@ Battery Current +4.30 A; offset 222 = 22 min, offset 224 = 0.
 
 Перевірка парсера: 4 реальні зарядні знімки (3 startup unknown та 22 min),
 15 синтетичних випадків напрямку/нуля/0xFFFF; синтаксис Python перевірено.
+
+## Статуси AC/DC (v0.3.24)
+
+У 32-байтовому secondary frame: u16 LE offset 2 = DC Output enabled;
+u16 LE offset 4 = AC Output enabled. 0 = OFF, 1 = ON. Інші значення
+не приймаються як підтверджений стан.
+
+Контроль користувача 2026-10-20 (+03:00):
+- 00:57:29: AC OFF / DC OFF → DC=0, AC=0.
+- 00:58:07: AC ON / DC OFF → DC=0, AC=1.
+- 00:58:44: AC OFF / DC ON → DC=1, AC=0.
+- Додатковий snapshot 00:55:34: DC=1, DC voltage 24.1 V, DC power 0 W.
+
+Offset 0 secondary frame не є DC enable: при DC ON він може бути 0
+без навантаження та 1 під навантаженням. Його семантика не реалізована.
+Статуси парсяться з потоку після повних main frames; повторення main та
+secondary frame допускаються. Відсутній secondary статус не підміняється
+показниками потужності чи станом попередньої сесії.
