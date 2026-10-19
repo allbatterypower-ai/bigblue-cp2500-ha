@@ -68,6 +68,35 @@ def _build_boolean_control_command(command: bytes, enabled: bool) -> tuple[bytes
     return frame[:20], frame[20:]
 
 
+def parse_output_status(data: bytes) -> dict:
+    """Read the secondary status frame following complete main frames.
+
+    Notifications can be fragmented or contain repeated main/status frames.
+    Never infer output enablement from power or voltage.
+    """
+    start = data.find(_MAIN_HEADER)
+    if start < 0:
+        return {}
+    offset = start
+    while data[offset:offset + 8] == _MAIN_HEADER:
+        if len(data) - offset < _MAIN_FRAME_LENGTH:
+            return {}
+        offset += _MAIN_FRAME_LENGTH
+    result = {}
+    while len(data) - offset >= 32:
+        frame = data[offset:offset + 32]
+        dc_enabled = _u16(frame, 2)
+        ac_enabled = _u16(frame, 4)
+        if dc_enabled not in (0, 1) or ac_enabled not in (0, 1):
+            return {}
+        result = {
+            "dc_output_enabled": bool(dc_enabled),
+            "ac_output_enabled": bool(ac_enabled),
+        }
+        offset += 32
+    return result
+
+
 def parse_telemetry(data: bytes) -> dict:
     if len(data) < _MAIN_FRAME_LENGTH:
         raise ValueError(f"Telemetry frame too short: {len(data)} bytes")
@@ -297,6 +326,7 @@ class BigBlueCoordinator(DataUpdateCoordinator):
 
                 while self._client.is_connected and not self._stopping:
                     main_frame = None
+                    output_status = {}
                     async with self._ble_write_lock:
                         chunks.clear()
                         await self._client.write_gatt_char(
@@ -312,9 +342,14 @@ class BigBlueCoordinator(DataUpdateCoordinator):
                             start = combined.find(_MAIN_HEADER)
                             if start >= 0 and len(combined) >= start + _MAIN_FRAME_LENGTH:
                                 main_frame = combined[start:start + _MAIN_FRAME_LENGTH]
-                                break
+                                output_status = parse_output_status(combined)
+                                if output_status:
+                                    break
 
                     self.last_raw_notifications = list(chunks)
+
+                    self.ac_output_enabled = output_status.get("ac_output_enabled")
+                    self.dc_output_enabled = output_status.get("dc_output_enabled")
 
                     if main_frame is None:
                         _LOGGER.warning(
@@ -324,9 +359,12 @@ class BigBlueCoordinator(DataUpdateCoordinator):
                             [len(chunk) for chunk in chunks],
                             sum(len(chunk) for chunk in chunks),
                         )
+                        self.async_set_update_error(RuntimeError("No complete telemetry frame"))
                     else:
                         self.last_raw_main_frame = main_frame
-                        self.async_set_updated_data(parse_telemetry(main_frame))
+                        telemetry = parse_telemetry(main_frame)
+                        telemetry.update(output_status)
+                        self.async_set_updated_data(telemetry)
                         await self._async_maybe_auto_upload_snapshot()
 
                     await asyncio.sleep(POLL_INTERVAL)
@@ -334,6 +372,8 @@ class BigBlueCoordinator(DataUpdateCoordinator):
             except asyncio.CancelledError:
                 raise
             except Exception as err:
+                self.ac_output_enabled = None
+                self.dc_output_enabled = None
                 _LOGGER.warning("BigBlue %s BLE loop error: %s", self.address, err)
                 self.async_set_update_error(err)
                 if self._client and self._client.is_connected:
@@ -452,7 +492,7 @@ class BigBlueCoordinator(DataUpdateCoordinator):
 
         payload = {
             "timestamp": timestamp,
-            "integration_version": "0.3.23",
+            "integration_version": "0.3.24",
             "snapshot_source": source,
             "device": {
                 "name": "BigBlue CP2500",
