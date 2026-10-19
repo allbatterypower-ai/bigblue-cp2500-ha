@@ -13,6 +13,7 @@ from homeassistant.const import (
     UnitOfElectricPotential,
     UnitOfPower,
     UnitOfTemperature,
+    UnitOfTime,
 )
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -29,6 +30,8 @@ class SensorDef:
 
 
 SENSORS = [
+    SensorDef("time_to_full", "Time to Full", UnitOfTime.MINUTES, SensorDeviceClass.DURATION, 0),
+    SensorDef("time_to_empty", "Time to Empty", UnitOfTime.MINUTES, SensorDeviceClass.DURATION, 0),
     SensorDef("soc", "State of Charge", PERCENTAGE, SensorDeviceClass.BATTERY, 0),
     SensorDef("soh", "State of Health", PERCENTAGE, None, 0),
     SensorDef("battery_voltage", "Battery Voltage", UnitOfElectricPotential.VOLT, SensorDeviceClass.VOLTAGE, 2),
