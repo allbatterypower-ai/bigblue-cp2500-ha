@@ -100,7 +100,14 @@ def parse_telemetry(data: bytes) -> dict:
     ac_output_temperature = _s16(data, 60)
     dc_temperature = _s16(data, 210)
 
+    # Device-reported estimates are uint16 little-endian minutes.
+    # Only expose the estimate for the current battery energy-flow direction.
+    time_to_full = _u16(data, 222)
+    time_to_empty = _u16(data, 224)
+
     result = {
+        "time_to_full": time_to_full if battery_current > 0 and time_to_full != 0xFFFF else None,
+        "time_to_empty": time_to_empty if battery_current < 0 and time_to_empty != 0xFFFF else None,
         "soc": soc,
         "soh": soh,
         "battery_voltage": round(battery_voltage, 2),
