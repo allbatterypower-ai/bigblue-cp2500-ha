@@ -25,5 +25,21 @@
         }
       }
     }
+  },
+  "entity": {
+    "sensor": {
+      "station_status": {
+        "name": "Стан станції",
+        "state": {
+          "charging": "Заряджається",
+          "discharging": "Розряджається",
+          "idle": "Очікування",
+          "disconnected": "Немає зв’язку"
+        }
+      },
+      "last_telemetry": {
+        "name": "Останнє отримання даних"
+      }
+    }
   }
 }
