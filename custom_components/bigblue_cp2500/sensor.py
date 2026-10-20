@@ -65,6 +65,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
     coordinator = hass.data[DOMAIN][entry.entry_id]
     async_add_entities(
         [BigBlueSensor(coordinator, entry, description) for description in SENSORS]
+        + [BigBlueStationStatus(coordinator, entry), BigBlueLastTelemetry(coordinator, entry)]
     )
 
 
@@ -97,3 +98,63 @@ class BigBlueSensor(CoordinatorEntity, SensorEntity):
             self.coordinator.last_update_success
             and self.description.key in self.coordinator.data
         )
+
+
+class BigBlueHealthSensor(CoordinatorEntity, SensorEntity):
+    _attr_has_entity_name = True
+
+    def __init__(self, coordinator, entry, key):
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{entry.data['address']}_{key}"
+        self._attr_translation_key = key
+        self._attr_device_info = {
+            "identifiers": {(DOMAIN, entry.data["address"])},
+            "name": "BigBlue CP2500",
+            "manufacturer": "BigBlue",
+            "model": "CP2500",
+        }
+
+    @property
+    def available(self):
+        # Keep the failure state and last successful timestamp visible offline.
+        return True
+
+
+class BigBlueStationStatus(BigBlueHealthSensor):
+    _attr_device_class = SensorDeviceClass.ENUM
+    _attr_options = ["charging", "discharging", "idle", "disconnected"]
+    _attr_icon = "mdi:power"
+
+    def __init__(self, coordinator, entry):
+        super().__init__(coordinator, entry, "station_status")
+
+    @property
+    def native_value(self):
+        if not self.coordinator.last_update_success or self.coordinator.last_telemetry_at is None:
+            return "disconnected"
+        data = self.coordinator.data
+        current = data.get("battery_current")
+        if current is None:
+            return None
+        # Observed standby draw with both outputs OFF is about 0.12–0.18 A.
+        if (-0.2 <= current <= 0
+                and data.get("ac_output_enabled") is False
+                and data.get("dc_output_enabled") is False):
+            return "idle"
+        if current > 0:
+            return "charging"
+        if current < 0:
+            return "discharging"
+        return "idle"
+
+
+class BigBlueLastTelemetry(BigBlueHealthSensor):
+    _attr_device_class = SensorDeviceClass.TIMESTAMP
+    _attr_icon = "mdi:clock-check-outline"
+
+    def __init__(self, coordinator, entry):
+        super().__init__(coordinator, entry, "last_telemetry")
+
+    @property
+    def native_value(self):
+        return self.coordinator.last_telemetry_at
