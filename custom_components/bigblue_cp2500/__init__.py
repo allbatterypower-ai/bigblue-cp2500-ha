@@ -180,6 +180,8 @@ class BigBlueCoordinator(DataUpdateCoordinator):
         self._control_ack_event = asyncio.Event()
         self._expected_control_ack: bytes | None = None
         self.data = {}
+        self.last_telemetry_at = None
+        self._snapshot_task: asyncio.Task | None = None
         self.last_raw_main_frame: bytes | None = None
         self.last_raw_notifications: list[bytes] = []
         self.ac_charging_power: int | None = None
@@ -200,6 +202,14 @@ class BigBlueCoordinator(DataUpdateCoordinator):
             except asyncio.CancelledError:
                 pass
             self._task = None
+
+        if self._snapshot_task:
+            self._snapshot_task.cancel()
+            try:
+                await self._snapshot_task
+            except asyncio.CancelledError:
+                pass
+            self._snapshot_task = None
 
         if self._client and self._client.is_connected:
             try:
@@ -294,6 +304,9 @@ class BigBlueCoordinator(DataUpdateCoordinator):
                 )
 
                 if ble_device is None:
+                    self.ac_output_enabled = None
+                    self.dc_output_enabled = None
+                    self.async_set_update_error(ConnectionError("Bluetooth device not discovered"))
                     _LOGGER.warning(
                         "BigBlue %s has not been discovered by Home Assistant Bluetooth yet; retrying",
                         self.address,
@@ -364,10 +377,20 @@ class BigBlueCoordinator(DataUpdateCoordinator):
                         self.last_raw_main_frame = main_frame
                         telemetry = parse_telemetry(main_frame)
                         telemetry.update(output_status)
+                        self.last_telemetry_at = dt_util.utcnow()
                         self.async_set_updated_data(telemetry)
-                        await self._async_maybe_auto_upload_snapshot()
+                        # GitHub network latency must not stall BLE polling.
+                        if self._snapshot_task is None or self._snapshot_task.done():
+                            self._snapshot_task = asyncio.create_task(
+                                self._async_maybe_auto_upload_snapshot()
+                            )
 
                     await asyncio.sleep(POLL_INTERVAL)
+
+                if not self._stopping:
+                    self.ac_output_enabled = None
+                    self.dc_output_enabled = None
+                    self.async_set_update_error(ConnectionError("Bluetooth disconnected"))
 
             except asyncio.CancelledError:
                 raise
@@ -492,8 +515,10 @@ class BigBlueCoordinator(DataUpdateCoordinator):
 
         payload = {
             "timestamp": timestamp,
-            "integration_version": "0.3.24",
+            "integration_version": "0.3.25",
             "snapshot_source": source,
+            "last_telemetry_at": self.last_telemetry_at.isoformat() if self.last_telemetry_at else None,
+            "telemetry_available": self.last_update_success,
             "device": {
                 "name": "BigBlue CP2500",
                 "address": self.address,

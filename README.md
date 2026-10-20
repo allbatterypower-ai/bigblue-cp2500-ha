@@ -104,4 +104,12 @@ Experimental local Bluetooth integration for the **BigBlue CP2500** portable pow
 - Main telemetry frame: 236 bytes
 - Secondary notification observed: 32 bytes
 
-Current integration version: **0.3.24**
+Current integration version: **0.3.25**
+
+## Station status and freshness (v0.3.25)
+
+Two additional sensors show battery activity and the UTC timestamp of the last successfully decoded BLE telemetry (displayed in your Home Assistant timezone). They remain visible on communication failure: status becomes No connection and the timestamp retains the last successful reading for this integration session. A restart resets it until new telemetry arrives.
+
+Status is derived from battery current: positive = Charging, negative = Discharging; with both outputs confirmed OFF, a small negative current down to -0.20 A is treated as Standby (observed internal consumption). Zero current is also Standby. This is an inferred battery mode, not a firmware sleep indicator; it does not prove the station is powered off.
+
+Automatic GitHub logging runs in the background with at most one upload task, so slow GitHub responses do not hold up BLE polling. The existing 15-second polling interval is unchanged. No Wi-Fi socket controls or wake automation are added.

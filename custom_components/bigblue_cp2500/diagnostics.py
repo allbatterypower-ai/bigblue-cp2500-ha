@@ -13,8 +13,10 @@ async def async_get_config_entry_diagnostics(
     coordinator = hass.data[DOMAIN][entry.entry_id]
 
     return {
-        "integration_version": "0.3.24",
+        "integration_version": "0.3.25",
         "parsed_data": coordinator.data,
+        "last_telemetry_at": coordinator.last_telemetry_at.isoformat() if coordinator.last_telemetry_at else None,
+        "telemetry_available": coordinator.last_update_success,
         "raw_main_frame_hex": (
             coordinator.last_raw_main_frame.hex(" ")
             if coordinator.last_raw_main_frame
