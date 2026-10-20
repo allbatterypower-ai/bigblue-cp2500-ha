@@ -25,5 +25,21 @@
         }
       }
     }
+  },
+  "entity": {
+    "sensor": {
+      "station_status": {
+        "name": "Station Status",
+        "state": {
+          "charging": "Charging",
+          "discharging": "Discharging",
+          "idle": "Standby",
+          "disconnected": "No connection"
+        }
+      },
+      "last_telemetry": {
+        "name": "Last Telemetry"
+      }
+    }
   }
 }
